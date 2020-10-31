@@ -6,7 +6,7 @@ mod tests {
 
     #[test]
     fn test() {
-        let print = Box::new(|x| println!("{}", x));
+        let print = |x| println!("{}", x);
         let mut prod = IteratorProducer { iter: vec!(1, 2, 3).into_iter(), consumer: &print };
         let s = Scheduler::new();
         s.add_task(Box::new(ProduceTask { producer: &mut prod }));
