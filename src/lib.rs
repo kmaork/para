@@ -9,32 +9,20 @@ use scheduler::*;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::thread;
-    use std::time::Duration;
+    use std::time::Instant;
 
     #[test]
     fn test() {
-        let print = |x| println!("{}", x);
-        // let sleep = |x| {
-        //     thread::sleep(Duration::from_secs(3));
-        //     x
-        // };
-        let mut prod = vec!(1, 2, 3).pipe(&print);
+        let start = Instant::now();
+        let print = |x| { x - 1; };
+        let mult = (|x| x * 2).pipe(&print);
+        let mut prod = (1..2000000).pipe(&mult);
 
         let s = Scheduler::new();
         s.add_task(Box::new(ProduceTask { producer: &mut prod }));
-        s.run();
+        s.run(1);
+        println!("{:?}", Instant::now() - start);
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 // first priority is unparallelizable nodes
