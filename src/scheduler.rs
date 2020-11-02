@@ -12,6 +12,8 @@ pub struct Scheduler<'a> {
 }
 
 impl<'a> Scheduler<'a> {
+    // TODO: first priority is unparallelizable nodes
+
     pub fn new() -> Self {
         let (task_sender, task_receiver) = unbounded();
         Self { task_sender, task_receiver }

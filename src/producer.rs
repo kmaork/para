@@ -8,10 +8,13 @@ pub trait Producer<'a>: Sized + Send {
 
     fn get_next_product(&mut self) -> Option<Self::Data>;
     fn consumer(&self) -> &'a Self::Consumer;
+    fn add_to_scheduler(&'a mut self, scheduler: &Scheduler<'a>) {
+        scheduler.add_task(Box::new(ProduceTask { producer: self }));
+    }
     fn produce(&'a mut self, scheduler: &Scheduler<'a>) {
         if let Some(data) = self.get_next_product() {
             scheduler.add_task(Box::new(ConsumeTask { consumer: self.consumer(), data }));
-            scheduler.add_task(Box::new(ProduceTask { producer: self }));
+            self.add_to_scheduler(scheduler);
             // self.produce(scheduler); // TODO: maybe if we have a thread-local task queue we could add it there
         };
     }
