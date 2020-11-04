@@ -1,6 +1,6 @@
-use crossbeam_channel::{Sender, Receiver, unbounded};
-use std::sync::{Arc, Mutex, Condvar};
 use crossbeam::thread;
+use crossbeam_channel::{unbounded, Receiver, Sender};
+use std::sync::{Arc, Condvar, Mutex};
 
 pub trait Task<'a> {
     fn run(self: Box<Self>, scheduler: &Scheduler<'a>);
@@ -16,7 +16,10 @@ impl<'a> Scheduler<'a> {
 
     pub fn new() -> Self {
         let (task_sender, task_receiver) = unbounded();
-        Self { task_sender, task_receiver }
+        Self {
+            task_sender,
+            task_receiver,
+        }
     }
 
     pub fn add_task(&self, task: Box<dyn Task<'a> + 'a + Send>) {
@@ -54,6 +57,7 @@ impl<'a> Scheduler<'a> {
                     }
                 });
             }
-        }).unwrap();
+        })
+        .unwrap();
     }
 }

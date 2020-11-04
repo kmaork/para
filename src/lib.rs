@@ -1,3 +1,7 @@
-pub mod producer;
-pub mod consumer;
-pub mod scheduler;
+mod consumer;
+mod producer;
+mod scheduler;
+
+pub use consumer::IntoMap;
+pub use producer::{IntoIteratorProducer, Producer};
+pub use scheduler::Scheduler;

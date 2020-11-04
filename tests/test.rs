@@ -1,7 +1,5 @@
+use para::*;
 use std::time::Instant;
-use para::scheduler::*;
-use para::consumer::*;
-use para::producer::*;
 
 #[test]
 fn test() {
