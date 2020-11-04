@@ -12,8 +12,6 @@ pub struct Scheduler<'a> {
 }
 
 impl<'a> Scheduler<'a> {
-    // TODO: first priority is unparallelizable nodes
-
     pub fn new() -> Self {
         let (task_sender, task_receiver) = unbounded();
         Self {
@@ -23,8 +21,6 @@ impl<'a> Scheduler<'a> {
     }
 
     pub fn add_task(&self, task: Box<dyn Task<'a> + 'a + Send>) {
-        // TODO: add support for clonable producer
-        // TODO: add suppoer for IO
         self.task_sender.send(task).unwrap();
     }
 

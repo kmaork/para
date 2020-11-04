@@ -3,6 +3,11 @@ name = "para"
 version = "0.1.0"
 authors = ["Maor Kleinberger <kmaork@gmail.com>"]
 edition = "2018"
+license = "MIT OR Apache-2.0"
+description = "A dataflow/pipeline parallelization framework"
+repository = "https://github.com/kmaork/para"
+readme = "README.md"
+categories = ["concurrency"]
 
 [dependencies]
 rayon = "1.5.0"
