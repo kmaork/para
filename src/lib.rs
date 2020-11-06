@@ -23,3 +23,5 @@ macro_rules! pipeline {
 // TODO: allow stateless producers (makes sense?)
 // TODO: optimize stateful consumers, don't wait for them while there is other work
 // TODO: per thread queue with work stealing.
+// TODO: it'd be ideal if the scheduler could own the nodes, as it wouldn't require the user to keep them on his stack.
+// same goes for the producer. Other option is a recursive macro that defines the consumers and then attaches to a producer and runs the pipeline.
