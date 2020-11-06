@@ -2,6 +2,7 @@ mod map;
 
 use crate::scheduler::{Scheduler, Task};
 pub use map::IntoMap;
+use std::sync::Mutex;
 
 pub trait Consumer<'a, D>: Sized + Sync {
     fn consume(&'a self, data: D, scheduler: &Scheduler<'a>);
@@ -10,6 +11,12 @@ pub trait Consumer<'a, D>: Sized + Sync {
 impl<'a, D, F: Fn(D) + Sync> Consumer<'a, D> for F {
     fn consume(&'a self, data: D, _scheduler: &Scheduler<'a>) {
         self(data);
+    }
+}
+
+impl<'a, D, F: FnMut(D) + Send> Consumer<'a, D> for Mutex<F> {
+    fn consume(&'a self, data: D, _scheduler: &Scheduler<'a>) {
+        (*self.lock().unwrap())(data);
     }
 }
 

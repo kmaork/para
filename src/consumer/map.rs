@@ -4,6 +4,11 @@ use rich_phantoms::PhantomCovariantAlwaysSendSync;
 
 pub struct Map<'a, I, O, F: Fn(I) -> O, C: Consumer<'a, O>> {
     func: F,
+    // We need PhantomData for I and O because they are unused, but PhantomData acts
+    // as if they were really a part of our struct, which means if they are
+    // Send/Sync, our struct won't be as well.
+    // To prevent this we use PhantomCovariantAlwaysSendSync, which is ok because we don't actually
+    // have I or O as a part of our struct.
     _i: PhantomCovariantAlwaysSendSync<I>,
     _o: PhantomCovariantAlwaysSendSync<O>,
     consumer: &'a C,
