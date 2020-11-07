@@ -26,3 +26,24 @@ which will use 4 threads to run all nodes and maximize computation throughput.
 
 ## Current state
 See [the integration test](./tests/test.rs)
+
+## TODO
+### Features
+- Improve macro. Right now user has to manually create consumer nodes on the stack.
+- Is it possible for the scheduler to own the nodes??
+- Support adding priority for nodes
+- Support marking nodes as running on external HW (e.g. GPU)
+- Support stateless producers? Rayon-style splittable iterators?
+### Optimization
+- When running short tasks, threads spend significant time synchronizing pushing and popping from the task queue.
+  The usual solution for that would be to implement work stealing.
+- Stateful consumers are held inside a mutex, so threads might spend time blocking.
+  A possible improvement is to modify the `consume` interface to return a boolean and use `try_lock` when executing functions in a mutex.
+  This might be less problematic once we implement work stealing.
+- Tasks contain a pointer to a node, which is wasteful as it is has 64 bits while we usually have around 3 bits of nodes.
+  We could use an id instead of reference, or collect tasks per-node. Collecting tasks per node might allow us to further optimize
+  running of stateful tasks.
+- We want all cores to always work. There could be a situation in which there are many tasks, but all are for a specific
+  Stateful node, so they can't be parallelized. For that reason, stateful nodes should always be prioritized.
+- Smartly manage the balance between having many ready tasks and memory usage, by knowing which nodes produce more work
+  and which nodes consume more work, and prioritizing them according to current workload.

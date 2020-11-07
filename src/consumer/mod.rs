@@ -1,7 +1,7 @@
 mod map;
+pub use map::Mapper;
 
 use crate::scheduler::{Scheduler, Task};
-pub use map::IntoMap;
 use std::sync::Mutex;
 
 pub trait Consumer<'a, D>: Sized + Sync {
