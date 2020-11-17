@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 #[test]
 fn test_with_macro() {
-    pipeline!(vec!(1, 2, 3) => |x| x + 1 => |x| println!("{}", x));
+    run_pipeline!(vec!(1, 2, 3) => |x| x + 1 => |x| println!("{}", x));
 }
 
 #[test]
