@@ -24,7 +24,6 @@ macro_rules! pipeline_reversed {
 
 #[macro_export]
 macro_rules! pipeline {
-    (,$($reversed:expr)=>+) => {pipeline_reversed!($($reversed)=>*)};
-    ($first:expr$(=>$original:expr)*,$($reversed:expr)=>*) => {pipeline!($($original)=>*,$first$(=>$reversed)*)};
-    ($($item:expr)=>*) => {pipeline!($($item)=>*,)};
+    (;$($reversed:expr)=>+) => {pipeline_reversed!($($reversed)=>*)};
+    ($first:expr$(=>$original:expr)*$(;$($reversed:expr)=>*)?) => {pipeline!($($original)=>*;$first$($(=>$reversed)*)*)};
 }
