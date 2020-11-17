@@ -1,9 +1,15 @@
+use para::Scheduler;
 use para::*;
 use std::collections::HashSet;
 use std::sync::Mutex;
 
 #[test]
-fn test() {
+fn test_with_macro() {
+    pipeline!(vec!(1, 2, 3) => |x| x + 1 => |x| println!("{}", x));
+}
+
+#[test]
+fn test_without_macro() {
     // State
     let mut results = HashSet::new();
     let mut sum = 0;
@@ -21,7 +27,10 @@ fn test() {
     let length = (|s: &str| s.len() as i32).pipe(&sum_and_pass);
     let mut prod2 = vec!["o", "yay", "ouwee"].pipe(&length);
     // Run pipeline
-    pipeline!(4, prod, prod2);
+    let s = Scheduler::new();
+    prod.add_to_scheduler(&s);
+    prod2.add_to_scheduler(&s);
+    s.run(4);
     // Check results
     assert_eq!(results, vec!(1, 2, 3, 4, 5, 6).into_iter().collect());
     assert_eq!(sum, 9);
