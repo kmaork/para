@@ -25,7 +25,7 @@ all nodes are completely parallelizable. The `pipeline!` macro will instantiate 
 which will use 4 threads to run all nodes and maximize computation throughput.
 
 ## Current state
-See [the integration test](./tests/test.rs)
+See [the integration tests](./tests/test.rs)
 
 ## TODO
 ### Features
