@@ -1,4 +1,3 @@
-use para::Scheduler;
 use para::*;
 use std::collections::HashSet;
 use std::sync::Mutex;
@@ -34,4 +33,26 @@ fn test_without_macro() {
     // Check results
     assert_eq!(results, vec!(1, 2, 3, 4, 5, 6).into_iter().collect());
     assert_eq!(sum, 9);
+}
+
+#[test]
+fn test_with_fanout() {
+    // State
+    let mut sum = 0;
+    // Define pipeline
+    let add = Mutex::new(|x| {
+        sum += x;
+    });
+    let plus = (|x| x + 2).pipe(&add);
+    let minus = (|x| x - 1).pipe(&add);
+    let fanout = Fanout::new(vec![&plus, &minus]);
+    let nums = vec![1, 2, 3];
+    let mut prod = nums.clone().pipe(&fanout); // TODO: why clone?
+                                               // Run pipeline
+    let s = Scheduler::new();
+    prod.add_to_scheduler(&s);
+    s.run(4);
+    // Check results
+    let numsum = nums.iter().sum::<i32>();
+    assert_eq!(sum, numsum * 2 + nums.len() as i32);
 }

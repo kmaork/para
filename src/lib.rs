@@ -4,7 +4,7 @@ mod consumer;
 mod producer;
 mod scheduler;
 
-pub use consumer::Mapper;
+pub use consumer::{Fanout, Mapper};
 pub use producer::{IntoIteratorProducer, Producer};
 pub use scheduler::Scheduler;
 

@@ -47,3 +47,6 @@ See [the integration test](./tests/test.rs)
   Stateful node, so they can't be parallelized. For that reason, stateful nodes should always be prioritized.
 - Smartly manage the balance between having many ready tasks and memory usage, by knowing which nodes produce more work
   and which nodes consume more work, and prioritizing them according to current workload.
+### WIP
+- Support fanout in macro
+- Support multiple producers in macro

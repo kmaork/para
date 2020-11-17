@@ -1,10 +1,13 @@
+mod fanout;
 mod map;
+
+pub use fanout::Fanout;
 pub use map::Mapper;
 
 use crate::scheduler::{Scheduler, Task};
 use std::sync::Mutex;
 
-pub trait Consumer<'a, D>: Sized + Sync {
+pub trait Consumer<'a, D>: Sync {
     fn consume(&'a self, data: D, scheduler: &Scheduler<'a>);
 }
 
@@ -20,12 +23,18 @@ impl<'a, D, F: FnMut(D) + Send> Consumer<'a, D> for Mutex<F> {
     }
 }
 
-pub struct ConsumeTask<'a, D, C> {
-    pub consumer: &'a C,
-    pub data: D,
+pub struct ConsumeTask<'a, D, C: Consumer<'a, D> + ?Sized> {
+    consumer: &'a C,
+    data: D,
 }
 
-impl<'a, D, C: Consumer<'a, D>> Task<'a> for ConsumeTask<'a, D, C> {
+impl<'a, D, C: Consumer<'a, D> + ?Sized> ConsumeTask<'a, D, C> {
+    pub fn new(consumer: &'a C, data: D) -> Self {
+        Self { consumer, data }
+    }
+}
+
+impl<'a, D, C: Consumer<'a, D> + ?Sized> Task<'a> for ConsumeTask<'a, D, C> {
     fn run(self: Box<Self>, scheduler: &Scheduler<'a>) {
         self.consumer.consume(self.data, scheduler);
     }

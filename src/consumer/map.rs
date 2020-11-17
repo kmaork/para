@@ -43,9 +43,9 @@ impl<'a, I: Send, O: Send, M: Mapper<I, O> + Sync, C: Consumer<'a, O>> Consumer<
     for Map<'a, I, O, M, C>
 {
     fn consume(&'a self, data: I, scheduler: &Scheduler<'a>) {
-        scheduler.add_task(Box::new(ConsumeTask {
-            data: (self.mapper).map(data),
-            consumer: self.consumer,
-        }))
+        scheduler.add_task(Box::new(ConsumeTask::new(
+            self.consumer,
+            (self.mapper).map(data),
+        )));
     }
 }

@@ -1,4 +1,5 @@
 mod iterator_producer;
+
 use crate::consumer::{ConsumeTask, Consumer};
 use crate::scheduler::{Scheduler, Task};
 pub use iterator_producer::IntoIteratorProducer;
@@ -14,10 +15,7 @@ pub trait Producer<'a>: Sized + Send {
     }
     fn produce(&'a mut self, scheduler: &Scheduler<'a>) {
         if let Some(data) = self.get_next_product() {
-            scheduler.add_task(Box::new(ConsumeTask {
-                consumer: self.consumer(),
-                data,
-            }));
+            scheduler.add_task(Box::new(ConsumeTask::new(self.consumer(), data)));
             self.add_to_scheduler(scheduler);
         };
     }
