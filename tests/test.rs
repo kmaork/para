@@ -47,11 +47,30 @@ fn test_with_fanout() {
     let minus = (|x| x - 1).pipe(&add);
     let fanout = Fanout::new(vec![&plus, &minus]);
     let nums = vec![1, 2, 3];
-    let mut prod = nums.clone().pipe(&fanout); // TODO: why clone?
-                                               // Run pipeline
+    let mut prod = nums.iter().pipe(&fanout);
+    // Run pipeline
     let s = Scheduler::new();
     prod.add_to_scheduler(&s);
     s.run(4);
+    // Check results
+    let numsum = nums.iter().sum::<i32>();
+    assert_eq!(sum, numsum * 2 + nums.len() as i32);
+}
+
+
+#[test]
+fn test_fanout_and_fanin_with_macro() {
+    // State
+    let mut sum = 0;
+    // Define pipeline
+    let add = Mutex::new(|x| {
+        sum += x;
+    });
+    let plus = (|x| x + 2).pipe(&add);
+    let minus = (|x| x - 1).pipe(&add);
+    let nums = vec![1, 2, 3];
+    // Run pipeline
+    run_pipeline!(&nums => Fanout::new(vec![&plus, &minus]));
     // Check results
     let numsum = nums.iter().sum::<i32>();
     assert_eq!(sum, numsum * 2 + nums.len() as i32);
