@@ -36,6 +36,7 @@ impl<'a> Scheduler<'a> {
                     loop {
                         for task in receiver.try_iter() {
                             task.run(sched_ref);
+                            // We might have created new work, so we wanna wake up some workers
                             cvar.notify_all();
                         }
                         let mut waiting_amount = lock.lock().unwrap();
@@ -46,7 +47,6 @@ impl<'a> Scheduler<'a> {
                         }
                         waiting_amount = cvar.wait(waiting_amount).unwrap();
                         if *waiting_amount == num_threads {
-                            cvar.notify_all();
                             return;
                         }
                         *waiting_amount -= 1;

@@ -29,8 +29,7 @@ See [the integration tests](./tests/test.rs)
 
 ## TODO
 ### Features
-- Improve macro. Right now user has to manually create consumer nodes on the stack.
-- Is it possible for the scheduler to own the nodes?? Do we even want it? (it will not allow other threads use functions, but other threads shouldn't really run)
+- Improve macro. Better support fanout.
 - Support adding priority for nodes
 - Support marking nodes as running on external HW (e.g. GPU)
 - Support stateless producers? Rayon-style splittable iterators?
