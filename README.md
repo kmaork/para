@@ -34,6 +34,7 @@ See [the integration tests](./tests/test.rs)
 - Support adding priority for nodes
 - Support marking nodes as running on external HW (e.g. GPU)
 - Support stateless producers? Rayon-style splittable iterators?
+- Implement Fanout for any iterable of consumers 
 ### Optimization
 - When running short tasks, threads spend significant time synchronizing pushing and popping from the task queue.
   The usual solution for that would be to implement work stealing.
