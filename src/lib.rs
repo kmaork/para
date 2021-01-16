@@ -1,8 +1,12 @@
+#![allow(incomplete_features)]
 #![feature(in_band_lifetimes)]
+#![feature(const_generics)]
+#![feature(maybe_uninit_uninit_array)]
 
 mod consumer;
 mod producer;
 mod scheduler;
+mod util;
 
 pub use consumer::{Fanout, Mapper};
 pub use producer::{IntoIteratorProducer, Producer};
