@@ -21,9 +21,5 @@ debug = true
 criterion = "0.3.3"
 
 [[bench]]
-name = "mult"
+name = "bench"
 harness = false
-
-[[bin]]
-name = "mult"
-path = "profiling/mult.rs"

@@ -53,7 +53,6 @@ impl<'a> Scheduler<'a> {
                     }
                 });
             }
-        })
-        .unwrap();
+        }).unwrap();
     }
 }
