@@ -21,8 +21,11 @@ impl<T, const N: usize> Circus<T, N> {
 
     #[inline]
     fn write(&mut self, t: T) {
-        drop(unsafe { mem::replace(&mut self.arr[self.write_idx % N], MaybeUninit::uninit()).assume_init() });
-        self.arr[self.write_idx % N] = MaybeUninit::new(t);
+        if self.write_idx >= N {
+            drop(unsafe { mem::replace(&mut self.arr[self.write_idx % N], MaybeUninit::new(t)).assume_init() });
+        } else {
+            self.arr[self.write_idx % N] = MaybeUninit::new(t);
+        }
         self.write_idx += 1;
     }
 
@@ -47,6 +50,7 @@ impl<T, const N: usize> Circus<T, N> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::rc::{Rc, Weak};
 
     #[test]
     fn test_size_0() {
@@ -74,10 +78,24 @@ mod tests {
             assert_eq!(c.push(1), Ok(()));
             assert_eq!(c.push(2), Ok(()));
             assert_eq!(c.push(3), Err(()));
-            assert_eq!(c.pop(), Ok(2));
-            assert_eq!(c.push(3), Ok(()));
-            assert_eq!(c.pop(), Ok(3));
             assert_eq!(c.pop(), Ok(1));
+            assert_eq!(c.push(4), Ok(()));
+            assert_eq!(c.pop(), Ok(2));
+            assert_eq!(c.pop(), Ok(4));
         }
+    }
+
+    #[test]
+    fn test_ownership_management() {
+        let mut c = Circus::<_, 1>::new();
+        let val = 12345;
+        let rc = Rc::new(val);
+        let weak_rc = Rc::downgrade(&rc);
+        assert_eq!(Weak::strong_count(&weak_rc), 1);
+        c.push(rc).unwrap();
+        assert_eq!(Weak::strong_count(&weak_rc), 1);
+        let rc2 = c.pop().unwrap();
+        assert_eq!(Rc::strong_count(&rc2), 1);
+        assert_eq!(*rc2, 12345);
     }
 }
