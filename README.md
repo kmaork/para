@@ -29,6 +29,8 @@ See [the integration tests](./tests/test.rs)
 
 ## TODO
 ### Features
+- Performance regression tests
+- CI/CD
 - Add benchmark that can be optimized using work-stealing
 - Make it easier to pass producers to schedule() (why not consume? maybe if we want to stop before the end?)
 - Improve macro. Better support fanout.
