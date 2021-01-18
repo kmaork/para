@@ -3,7 +3,7 @@ use std::mem::MaybeUninit;
 use std::{fmt, mem};
 
 pub struct CantPush<T> {
-    t: T,
+    pub t: T,
 }
 
 impl<T> Debug for CantPush<T> {
@@ -59,10 +59,6 @@ impl<T, const N: usize> Circus<T, N> {
         } else {
             Err(())
         }
-    }
-
-    fn try_iter(&mut self) -> impl Iterator<Item = T> + '_ {
-        self
     }
 }
 
@@ -126,18 +122,5 @@ mod tests {
         let rc2 = c.pop().unwrap();
         assert_eq!(Rc::strong_count(&rc2), 1);
         assert_eq!(*rc2, 12345);
-    }
-
-    #[test]
-    fn test_iteration() {
-        let mut circ = Circus::<_, 2>::new();
-        let a = String::from("a");
-        let b = String::from("b");
-        let c = String::from("c");
-        circ.push(a.clone()).unwrap();
-        assert_eq!(circ.try_iter().collect::<Vec<_>>(), vec![a]);
-        circ.push(b.clone()).unwrap();
-        circ.push(c.clone()).unwrap();
-        assert_eq!(circ.try_iter().collect::<Vec<_>>(), vec![b, c]);
     }
 }
