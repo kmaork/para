@@ -97,15 +97,24 @@ pub fn schedule<'a>(producers: &'a mut [&'a mut (dyn TaskGenerator<'a> + 'a)], n
     }
     let scheduler = Arc::new(Scheduler::new(num_threads));
     thread::scope(|s| {
-        for _ in 0..num_threads {
+        for _thread_num in 0..num_threads {
             let global_sender_clone = global_sender.clone();
             let global_receiver_clone = global_receiver.clone();
             let scheduler_clone = Arc::clone(&scheduler);
-            s.spawn(|_| {
+            s.spawn(move |_| {
                 let mut manager =
                     TaskManager::new(global_sender_clone, global_receiver_clone, scheduler_clone);
+                let mut _n = 0;
                 while let Some(task) = manager.next() {
                     task.run(&mut manager);
+                    #[cfg(debug_assertions)]
+                    {
+                        _n += 1;
+                    }
+                }
+                #[cfg(debug_assertions)]
+                {
+                    println!("Thread {}: {} tasks", _thread_num, _n);
                 }
             });
         }

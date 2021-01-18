@@ -7,8 +7,8 @@ use std::time::Duration;
 pub fn bench_pipeline(c: &mut Criterion) {
     let mut group = c.benchmark_group("pipelines");
     group.noise_threshold(0.03);
-    group.warm_up_time(Duration::from_secs(1));
-    group.measurement_time(Duration::from_secs(3));
+    group.warm_up_time(Duration::from_secs(2));
+    group.measurement_time(Duration::from_secs(5));
 
     group.bench_function("one_map", |b| {
         b.iter(|| {
