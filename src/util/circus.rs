@@ -1,5 +1,16 @@
 use std::mem::MaybeUninit;
-use std::mem;
+use std::{mem, fmt};
+use std::fmt::{Debug, Formatter};
+
+pub struct CantPush<T> {
+    t: T
+}
+
+impl<T> Debug for CantPush<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Can't push - queue is full")
+    }
+}
 
 pub struct Circus<T, const N: usize> {
     arr: [MaybeUninit<T>; N],
@@ -8,18 +19,20 @@ pub struct Circus<T, const N: usize> {
 }
 
 impl<T, const N: usize> Circus<T, N> {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Circus { arr: MaybeUninit::uninit_array(), write_idx: 0, read_idx: 0 }
     }
 
-    #[inline]
     fn read(&mut self) -> T {
         let val = unsafe { mem::replace(&mut self.arr[self.read_idx % N], MaybeUninit::uninit()).assume_init() };
         self.read_idx += 1;
         val
     }
 
-    #[inline]
+    pub fn can_push(&self) -> bool {
+        self.write_idx < self.read_idx + N
+    }
+
     fn write(&mut self, t: T) {
         if self.write_idx >= N {
             drop(unsafe { mem::replace(&mut self.arr[self.write_idx % N], MaybeUninit::new(t)).assume_init() });
@@ -29,12 +42,12 @@ impl<T, const N: usize> Circus<T, N> {
         self.write_idx += 1;
     }
 
-    pub fn push(&mut self, t: T) -> Result<(), ()> {
-        if self.write_idx < self.read_idx + N {
+    pub fn push(&mut self, t: T) -> Result<(), CantPush<T>> {
+        if self.can_push() {
             self.write(t);
             Ok(())
         } else {
-            Err(())
+            Err(CantPush { t })
         }
     }
 
@@ -44,6 +57,18 @@ impl<T, const N: usize> Circus<T, N> {
         } else {
             Err(())
         }
+    }
+
+    fn try_iter(&mut self) -> impl Iterator<Item=T> + '_ {
+        self
+    }
+}
+
+impl<T, const N: usize> Iterator for Circus<T, N> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.pop().ok()
     }
 }
 
@@ -56,17 +81,17 @@ mod tests {
     fn test_size_0() {
         let mut c = Circus::<u16, 0>::new();
         assert_eq!(c.pop(), Err(()));
-        assert_eq!(c.push(1), Err(()));
+        assert_eq!(c.push(1).unwrap_err().t, 1);
     }
 
     #[test]
     fn test_size_1() {
         let mut c = Circus::<u16, 1>::new();
         for _ in 0..2 {
-            assert_eq!(c.pop(), Err(()));
-            assert_eq!(c.push(1), Ok(()));
-            assert_eq!(c.push(2), Err(()));
-            assert_eq!(c.pop(), Ok(1));
+            c.pop().unwrap_err();
+            c.push(1).unwrap();
+            assert_eq!(c.push(2).unwrap_err().t, 2);
+            assert_eq!(c.pop().unwrap(), 1);
         }
     }
 
@@ -75,13 +100,13 @@ mod tests {
         let mut c = Circus::<u16, 2>::new();
         for _ in 0..2 {
             assert_eq!(c.pop(), Err(()));
-            assert_eq!(c.push(1), Ok(()));
-            assert_eq!(c.push(2), Ok(()));
-            assert_eq!(c.push(3), Err(()));
-            assert_eq!(c.pop(), Ok(1));
-            assert_eq!(c.push(4), Ok(()));
-            assert_eq!(c.pop(), Ok(2));
-            assert_eq!(c.pop(), Ok(4));
+            c.push(1).unwrap();
+            c.push(2).unwrap();
+            assert_eq!(c.push(3).unwrap_err().t, 3);
+            assert_eq!(c.pop().unwrap(), 1);
+            c.push(4).unwrap();
+            assert_eq!(c.pop().unwrap(), 2);
+            assert_eq!(c.pop().unwrap(), 4);
         }
     }
 
@@ -97,5 +122,18 @@ mod tests {
         let rc2 = c.pop().unwrap();
         assert_eq!(Rc::strong_count(&rc2), 1);
         assert_eq!(*rc2, 12345);
+    }
+
+    #[test]
+    fn test_iteration() {
+        let mut circ = Circus::<_, 2>::new();
+        let a = "a";
+        let b = "b";
+        let c = "c";
+        circ.push(a).unwrap();
+        assert_eq!(circ.try_iter().collect::<Vec<&str>>(), vec![a]);
+        circ.push(b).unwrap();
+        circ.push(c).unwrap();
+        assert_eq!(circ.try_iter().collect::<Vec<&str>>(), vec![b, c]);
     }
 }
