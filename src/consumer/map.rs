@@ -1,7 +1,7 @@
 use crate::consumer::{ConsumeTask, Consumer};
+use crate::scheduler::TaskManager;
 use rich_phantoms::PhantomCovariantAlwaysSendSync;
 use std::sync::Mutex;
-use crate::scheduler::TaskManager;
 
 pub trait Mapper<I, O>: Sized {
     fn map(&self, input: I) -> O;

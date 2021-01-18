@@ -21,7 +21,8 @@ fn test_without_macro() {
     let sum_and_pass = Mutex::new(|x| {
         sum += x;
         x
-    }).pipe(&collect);
+    })
+    .pipe(&collect);
     let length = (|s: &str| s.len() as i32).pipe(&sum_and_pass);
     let mut prod2 = vec!["o", "yay", "ouwee"].pipe(&length);
     // Run pipeline
@@ -50,7 +51,6 @@ fn test_with_fanout() {
     let numsum = nums.iter().sum::<i32>();
     assert_eq!(sum, numsum * 2 + nums.len() as i32);
 }
-
 
 #[test]
 fn test_fanout_and_fanin_with_macro() {

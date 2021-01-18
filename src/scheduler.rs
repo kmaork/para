@@ -1,6 +1,6 @@
+use crate::util::Circus;
 use crossbeam::thread;
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use crate::util::Circus;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
@@ -24,8 +24,17 @@ pub struct TaskManager<'a> {
 }
 
 impl<'a> TaskManager<'a> {
-    fn new(global_sender: Sender<DynTask<'a>>, global_receiver: Receiver<DynTask<'a>>, scheduler: Arc<Scheduler>) -> Self {
-        Self { thread_queue: Circus::new(), global_sender, global_receiver, scheduler }
+    fn new(
+        global_sender: Sender<DynTask<'a>>,
+        global_receiver: Receiver<DynTask<'a>>,
+        scheduler: Arc<Scheduler>,
+    ) -> Self {
+        Self {
+            thread_queue: Circus::new(),
+            global_sender,
+            global_receiver,
+            scheduler,
+        }
     }
 
     pub fn add_task(&mut self, task: DynTask<'a>) {
@@ -61,20 +70,22 @@ pub trait TaskGenerator<'a> {
 }
 
 struct Scheduler {
-    count: AtomicU32
+    count: AtomicU32,
 }
 
 impl Scheduler {
     fn new(num_threads: u32) -> Self {
-        Self { count: AtomicU32::new(num_threads) }
+        Self {
+            count: AtomicU32::new(num_threads),
+        }
     }
 
     fn start_blocking_if_someone_else_is_not(&self) -> bool {
-        self.count.fetch_sub(1, Ordering::AcqRel) > 1// TODO: what?
+        self.count.fetch_sub(1, Ordering::AcqRel) > 1 // TODO: what?
     }
 
     fn done_blocking(&self) {
-        self.count.fetch_add(1, Ordering::AcqRel);// TODO: what?
+        self.count.fetch_add(1, Ordering::AcqRel); // TODO: what?
     }
 }
 
@@ -91,7 +102,8 @@ pub fn schedule<'a>(producers: &'a mut [&'a mut (dyn TaskGenerator<'a> + 'a)], n
             let global_receiver_clone = global_receiver.clone();
             let scheduler_clone = Arc::clone(&scheduler);
             s.spawn(|_| {
-                let mut manager = TaskManager::new(global_sender_clone, global_receiver_clone, scheduler_clone);
+                let mut manager =
+                    TaskManager::new(global_sender_clone, global_receiver_clone, scheduler_clone);
                 while let Some(task) = manager.next() {
                     task.run(&mut manager);
                 }
@@ -99,5 +111,6 @@ pub fn schedule<'a>(producers: &'a mut [&'a mut (dyn TaskGenerator<'a> + 'a)], n
         }
         drop(global_sender);
         drop(global_receiver);
-    }).unwrap();
+    })
+    .unwrap();
 }

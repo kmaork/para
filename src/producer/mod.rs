@@ -1,7 +1,7 @@
 mod iterator_producer;
 
 use crate::consumer::{ConsumeTask, Consumer};
-use crate::scheduler::{Task, TaskManager, TaskGenerator, DynTask};
+use crate::scheduler::{DynTask, Task, TaskGenerator, TaskManager};
 pub use iterator_producer::IntoIteratorProducer;
 
 pub trait Producer<'a>: Sized + Send {
@@ -18,11 +18,13 @@ pub trait Producer<'a>: Sized + Send {
     }
 }
 
-pub struct ProduceTask<'a, D: Send, C: Consumer<'a, D>, P: Producer<'a, Data=D, Consumer=C>> {
+pub struct ProduceTask<'a, D: Send, C: Consumer<'a, D>, P: Producer<'a, Data = D, Consumer = C>> {
     pub producer: &'a mut P,
 }
 
-impl<'a, D: Send, C: Consumer<'a, D>, P: Producer<'a, Data=D, Consumer=C>> Task<'a> for ProduceTask<'a, D, C, P> {
+impl<'a, D: Send, C: Consumer<'a, D>, P: Producer<'a, Data = D, Consumer = C>> Task<'a>
+    for ProduceTask<'a, D, C, P>
+{
     fn run(self: Box<Self>, manager: &mut TaskManager<'a>) {
         self.producer.produce(manager);
     }
