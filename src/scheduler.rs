@@ -16,23 +16,38 @@ impl<'a> Task<'a> for () {
 
 pub type DynTask<'a> = Box<dyn Task<'a> + 'a + Send>;
 
+#[derive(Clone)]
+struct GlobalTaskQueue<'a> {
+    sender: Sender<DynTask<'a>>,
+    receiver: Receiver<DynTask<'a>>,
+}
+
+impl<'a> GlobalTaskQueue<'a> {
+    fn new() -> Self {
+        let (sender, receiver) = unbounded();
+        Self { sender, receiver }
+    }
+
+    fn push(&self, task: DynTask<'a>) {
+        self.sender.send(task).unwrap();
+    }
+
+    fn pop(&self) -> DynTask<'a> {
+        self.receiver.recv().unwrap()
+    }
+}
+
 pub struct TaskManager<'a> {
     thread_queue: Circus<DynTask<'a>, THREAD_QUEUE_SIZE>,
-    global_sender: Sender<DynTask<'a>>,
-    global_receiver: Receiver<DynTask<'a>>,
+    global_queue: GlobalTaskQueue<'a>,
     scheduler: Arc<Scheduler>,
 }
 
 impl<'a> TaskManager<'a> {
-    fn new(
-        global_sender: Sender<DynTask<'a>>,
-        global_receiver: Receiver<DynTask<'a>>,
-        scheduler: Arc<Scheduler>,
-    ) -> Self {
+    fn new(global_queue: GlobalTaskQueue<'a>, scheduler: Arc<Scheduler>) -> Self {
         Self {
             thread_queue: Circus::new(),
-            global_sender,
-            global_receiver,
+            global_queue,
             scheduler,
         }
     }
@@ -41,7 +56,7 @@ impl<'a> TaskManager<'a> {
         if self.thread_queue.can_push() {
             self.thread_queue.push(task).unwrap();
         } else {
-            self.global_sender.send(task).unwrap();
+            self.global_queue.push(task);
         }
     }
 }
@@ -54,11 +69,11 @@ impl<'a> Iterator for TaskManager<'a> {
             Some(task)
         } else {
             if self.scheduler.start_blocking_if_someone_else_is_not() {
-                let task = self.global_receiver.recv().unwrap();
+                let task = self.global_queue.pop();
                 self.scheduler.done_blocking();
                 Some(task)
             } else {
-                self.global_sender.send(Box::new(())).unwrap();
+                self.global_queue.push(Box::new(()));
                 None
             }
         }
@@ -90,20 +105,17 @@ impl Scheduler {
 }
 
 pub fn schedule<'a>(producers: &'a mut [&'a mut (dyn TaskGenerator<'a> + 'a)], num_threads: u32) {
-    //TODO: global_sender and receiver should go inside scheduler
-    let (global_sender, global_receiver) = unbounded();
+    let global_queue = GlobalTaskQueue::new();
     for producer in producers {
-        global_sender.send(producer.first_task()).unwrap();
+        global_queue.push(producer.first_task());
     }
     let scheduler = Arc::new(Scheduler::new(num_threads));
     thread::scope(|s| {
         for _thread_num in 0..num_threads {
-            let global_sender_clone = global_sender.clone();
-            let global_receiver_clone = global_receiver.clone();
+            let global_queue_clone = global_queue.clone();
             let scheduler_clone = Arc::clone(&scheduler);
             s.spawn(move |_| {
-                let mut manager =
-                    TaskManager::new(global_sender_clone, global_receiver_clone, scheduler_clone);
+                let mut manager = TaskManager::new(global_queue_clone, scheduler_clone);
                 let mut _n = 0;
                 while let Some(task) = manager.next() {
                     task.run(&mut manager);
@@ -118,8 +130,6 @@ pub fn schedule<'a>(producers: &'a mut [&'a mut (dyn TaskGenerator<'a> + 'a)], n
                 }
             });
         }
-        drop(global_sender);
-        drop(global_receiver);
     })
     .unwrap();
 }
