@@ -28,18 +28,23 @@ which will use 4 threads to run all nodes and maximize computation throughput.
 See [the integration tests](./tests/test.rs)
 
 ## TODO
-### Features
-- Designate cores for threads
-- Performance regression tests
-- CI/CD
-- Add benchmark that can be optimized using work-stealing
+### Potential bugs
+- Make sure usage of atomics is correct
+### Interface
+- Support fanout in macro
+- Support multiple producers in macro
+- Support thread num in macro
 - Make it easier to pass producers to schedule() (why not consume? maybe if we want to stop before the end?)
-- Improve macro. Better support fanout.
 - Support adding priority for nodes
 - Support marking nodes as running on external HW (e.g. GPU)
 - Support stateless producers? Rayon-style splittable iterators?
 - Implement Fanout for any iterable of consumers 
 ### Optimization
+- Inline some funcs or enable automatic inlining
+- A LOT of time is spent on creating tasks and moving them around.
+  If we could make them not dyn (enum?) we could save both the dynamic dispatch and allocation.
+- Circus reads and writes take time. We could probably optimize that. 
+- Designate cores for threads
 - When running short tasks, threads spend significant time synchronizing pushing and popping from the task queue.
   The usual solution for that would be to implement work stealing.
 - Stateful consumers are held inside a mutex, so threads might spend time blocking.
@@ -52,6 +57,8 @@ See [the integration tests](./tests/test.rs)
   Stateful node, so they can't be parallelized. For that reason, stateful nodes should always be prioritized.
 - Smartly manage the balance between having many ready tasks and memory usage, by knowing which nodes produce more work
   and which nodes consume more work, and prioritizing them according to current workload.
-### WIP
-- Support fanout in macro
-- Support multiple producers in macro
+### Testing
+- Performance regression tests
+- CI/CD
+- Add benchmark that can be optimized using work-stealing
+- Benchmark two producers
