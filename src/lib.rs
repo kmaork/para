@@ -15,7 +15,7 @@ pub use scheduler::schedule;
 #[macro_export]
 macro_rules! run_pipeline_reversed {
     ($producer:expr) => {
-        schedule(&mut [&mut $producer], 2);
+        schedule(&mut [&mut $producer], 4);
     };
     ($node1:expr=>$node2:expr$(=>$node:expr)*) => {
         let local_node = $node1;

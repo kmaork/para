@@ -12,12 +12,12 @@ pub fn bench_pipeline(c: &mut Criterion) {
 
     group.bench_function("one_map", |b| {
         b.iter(|| {
-            run_pipeline!(0..10000 => |x| {x * 99;});
+            run_pipeline!(0..100000 => |x| {x * 99;});
         })
     });
     group.bench_function("two_maps", |b| {
         b.iter(|| {
-            run_pipeline!(0..10000 => |x| x * 99 => |x| {x - 1;});
+            run_pipeline!(0..100000 => |x| x * 99 => |x| {x - 1;});
         })
     });
     group.bench_function("fanout", |b| {
@@ -30,7 +30,7 @@ pub fn bench_pipeline(c: &mut Criterion) {
                     x - 1;
                 },
             ]);
-            run_pipeline!(0..10000 => f);
+            run_pipeline!(0..100000 => f);
         })
     });
 }

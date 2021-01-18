@@ -14,6 +14,9 @@ crossbeam-channel = "0.5.0"
 rich-phantoms = "0.1.0"
 crossbeam="0.8.0"
 
+[profile.bench]
+debug = true
+
 [profile.release]
 debug = true
 
@@ -23,3 +26,7 @@ criterion = "0.3.3"
 [[bench]]
 name = "bench"
 harness = false
+
+[[bin]]
+name = "profile"
+path = "profiling/profile.rs"

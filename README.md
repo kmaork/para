@@ -29,6 +29,7 @@ See [the integration tests](./tests/test.rs)
 
 ## TODO
 ### Features
+- Designate cores for threads
 - Performance regression tests
 - CI/CD
 - Add benchmark that can be optimized using work-stealing
