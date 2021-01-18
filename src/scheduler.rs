@@ -1,58 +1,103 @@
 use crossbeam::thread;
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use std::sync::{Arc, Condvar, Mutex};
+use crate::util::Circus;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
+
+const THREAD_QUEUE_SIZE: usize = 100;
 
 pub trait Task<'a> {
-    fn run(self: Box<Self>, scheduler: &Scheduler<'a>);
+    fn run(self: Box<Self>, manager: &mut TaskManager<'a>);
 }
 
-pub struct Scheduler<'a> {
-    task_sender: Sender<Box<dyn Task<'a> + 'a + Send>>,
-    task_receiver: Receiver<Box<dyn Task<'a> + 'a + Send>>,
+impl<'a> Task<'a> for () {
+    fn run(self: Box<Self>, _manager: &mut TaskManager<'_>) {}
 }
 
-impl<'a> Scheduler<'a> {
-    pub fn new() -> Self {
-        let (task_sender, task_receiver) = unbounded();
-        Self {
-            task_sender,
-            task_receiver,
+pub type DynTask<'a> = Box<dyn Task<'a> + 'a + Send>;
+
+pub struct TaskManager<'a> {
+    thread_queue: Circus<DynTask<'a>, THREAD_QUEUE_SIZE>,
+    global_sender: Sender<DynTask<'a>>,
+    global_receiver: Receiver<DynTask<'a>>,
+    scheduler: Arc<Scheduler>,
+}
+
+impl<'a> TaskManager<'a> {
+    fn new(global_sender: Sender<DynTask<'a>>, global_receiver: Receiver<DynTask<'a>>, scheduler: Arc<Scheduler>) -> Self {
+        Self { thread_queue: Circus::new(), global_sender, global_receiver, scheduler }
+    }
+
+    pub fn add_task(&mut self, task: DynTask<'a>) {
+        if self.thread_queue.can_push() {
+            self.thread_queue.push(task).unwrap();
+        } else {
+            self.global_sender.send(task).unwrap();
         }
     }
+}
 
-    pub fn add_task(&self, task: Box<dyn Task<'a> + 'a + Send>) {
-        self.task_sender.send(task).unwrap();
-    }
+impl<'a> Iterator for TaskManager<'a> {
+    type Item = DynTask<'a>;
 
-    pub fn run(self, num_threads: usize) {
-        let sync = Arc::new((Mutex::new(0), Condvar::new()));
-        thread::scope(|s| {
-            for _ in 0..num_threads {
-                let sync_clone = sync.clone();
-                let receiver = self.task_receiver.clone();
-                let sched_ref = &self;
-                s.spawn(move |_| {
-                    let (lock, cvar) = &*sync_clone;
-                    loop {
-                        for task in receiver.try_iter() {
-                            task.run(sched_ref);
-                            // We might have created new work, so we wanna wake up some workers
-                            cvar.notify_all();
-                        }
-                        let mut waiting_amount = lock.lock().unwrap();
-                        *waiting_amount += 1;
-                        if *waiting_amount == num_threads {
-                            cvar.notify_all();
-                            return;
-                        }
-                        waiting_amount = cvar.wait(waiting_amount).unwrap();
-                        if *waiting_amount == num_threads {
-                            return;
-                        }
-                        *waiting_amount -= 1;
-                    }
-                });
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Ok(task) = self.thread_queue.pop() {
+            Some(task)
+        } else {
+            if self.scheduler.start_blocking_if_someone_else_is_not() {
+                let task = self.global_receiver.recv().unwrap();
+                self.scheduler.done_blocking();
+                Some(task)
+            } else {
+                self.global_sender.send(Box::new(())).unwrap();
+                None
             }
-        }).unwrap();
+        }
     }
+}
+
+pub trait TaskGenerator<'a> {
+    fn first_task(&'a mut self) -> DynTask<'a>;
+}
+
+struct Scheduler {
+    count: AtomicU32
+}
+
+impl Scheduler {
+    fn new(num_threads: u32) -> Self {
+        Self { count: AtomicU32::new(num_threads) }
+    }
+
+    fn start_blocking_if_someone_else_is_not(&self) -> bool {
+        self.count.fetch_sub(1, Ordering::AcqRel) > 1// TODO: what?
+    }
+
+    fn done_blocking(&self) {
+        self.count.fetch_add(1, Ordering::AcqRel);// TODO: what?
+    }
+}
+
+pub fn schedule<'a>(producers: &'a mut [&'a mut (dyn TaskGenerator<'a> + 'a)], num_threads: u32) {
+    //TODO: global_sender and receiver should go inside scheduler
+    let (global_sender, global_receiver) = unbounded();
+    for producer in producers {
+        global_sender.send(producer.first_task()).unwrap();
+    }
+    let scheduler = Arc::new(Scheduler::new(num_threads));
+    thread::scope(|s| {
+        for _ in 0..num_threads {
+            let global_sender_clone = global_sender.clone();
+            let global_receiver_clone = global_receiver.clone();
+            let scheduler_clone = Arc::clone(&scheduler);
+            s.spawn(|_| {
+                let mut manager = TaskManager::new(global_sender_clone, global_receiver_clone, scheduler_clone);
+                while let Some(task) = manager.next() {
+                    task.run(&mut manager);
+                }
+            });
+        }
+        drop(global_sender);
+        drop(global_receiver);
+    }).unwrap();
 }

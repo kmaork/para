@@ -21,15 +21,11 @@ fn test_without_macro() {
     let sum_and_pass = Mutex::new(|x| {
         sum += x;
         x
-    })
-    .pipe(&collect);
+    }).pipe(&collect);
     let length = (|s: &str| s.len() as i32).pipe(&sum_and_pass);
     let mut prod2 = vec!["o", "yay", "ouwee"].pipe(&length);
     // Run pipeline
-    let s = Scheduler::new();
-    prod.add_to_scheduler(&s);
-    prod2.add_to_scheduler(&s);
-    s.run(4);
+    schedule(&mut [&mut prod, &mut prod2], 4);
     // Check results
     assert_eq!(results, vec!(1, 2, 3, 4, 5, 6).into_iter().collect());
     assert_eq!(sum, 9);
@@ -49,9 +45,7 @@ fn test_with_fanout() {
     let nums = vec![1, 2, 3];
     let mut prod = nums.iter().pipe(&fanout);
     // Run pipeline
-    let s = Scheduler::new();
-    prod.add_to_scheduler(&s);
-    s.run(4);
+    schedule(&mut [&mut prod], 4);
     // Check results
     let numsum = nums.iter().sum::<i32>();
     assert_eq!(sum, numsum * 2 + nums.len() as i32);

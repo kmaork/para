@@ -10,14 +10,12 @@ mod util;
 
 pub use consumer::{Fanout, Mapper};
 pub use producer::{IntoIteratorProducer, Producer};
-pub use scheduler::Scheduler;
+pub use scheduler::schedule;
 
 #[macro_export]
 macro_rules! run_pipeline_reversed {
     ($producer:expr) => {
-        let scheduler = Scheduler::new();
-        $producer.add_to_scheduler(&scheduler);
-        scheduler.run(4);
+        schedule(&mut [&mut $producer], 4);
     };
     ($node1:expr=>$node2:expr$(=>$node:expr)*) => {
         let local_node = $node1;

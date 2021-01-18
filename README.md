@@ -29,6 +29,8 @@ See [the integration tests](./tests/test.rs)
 
 ## TODO
 ### Features
+- Add benchmark that can be optimized using work-stealing
+- Make it easier to pass producers to schedule() (why not consume? maybe if we want to stop before the end?)
 - Improve macro. Better support fanout.
 - Support adding priority for nodes
 - Support marking nodes as running on external HW (e.g. GPU)
