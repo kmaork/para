@@ -81,11 +81,11 @@ impl Scheduler {
     }
 
     fn start_blocking_if_someone_else_is_not(&self) -> bool {
-        self.count.fetch_sub(1, Ordering::AcqRel) > 1 // TODO: what?
+        self.count.fetch_sub(1, Ordering::AcqRel) > 1
     }
 
     fn done_blocking(&self) {
-        self.count.fetch_add(1, Ordering::AcqRel); // TODO: what?
+        self.count.fetch_add(1, Ordering::AcqRel);
     }
 }
 

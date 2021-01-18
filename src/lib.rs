@@ -2,6 +2,7 @@
 #![feature(in_band_lifetimes)]
 #![feature(const_generics)]
 #![feature(maybe_uninit_uninit_array)]
+#![feature(maybe_uninit_ref)]
 
 mod consumer;
 mod producer;
