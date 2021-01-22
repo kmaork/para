@@ -28,6 +28,7 @@ impl<T, const N: usize> Circus<T, N> {
         }
     }
 
+    #[inline]
     fn read(&mut self) -> T {
         let val = unsafe {
             mem::replace(&mut self.arr[*self.read_idx % N], MaybeUninit::uninit()).assume_init()
@@ -36,15 +37,18 @@ impl<T, const N: usize> Circus<T, N> {
         val
     }
 
+    #[inline]
     pub fn can_push(&self) -> bool {
         *self.write_idx < *self.read_idx + N
     }
 
+    #[inline]
     fn write(&mut self, t: T) {
         self.arr[*self.write_idx % N] = MaybeUninit::new(t);
         *self.write_idx += 1;
     }
 
+    #[inline]
     pub fn push(&mut self, t: T) -> Result<(), CantPush<T>> {
         if self.can_push() {
             self.write(t);
@@ -54,6 +58,7 @@ impl<T, const N: usize> Circus<T, N> {
         }
     }
 
+    #[inline]
     pub fn pop(&mut self) -> Result<T, ()> {
         if *self.read_idx < *self.write_idx {
             Ok(self.read())
@@ -66,6 +71,7 @@ impl<T, const N: usize> Circus<T, N> {
 impl<T, const N: usize> Iterator for Circus<T, N> {
     type Item = T;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.pop().ok()
     }
