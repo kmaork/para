@@ -1,3 +1,4 @@
+use crossbeam::utils::CachePadded;
 use std::fmt::{Debug, Formatter};
 use std::mem::MaybeUninit;
 use std::{fmt, mem};
@@ -14,34 +15,34 @@ impl<T> Debug for CantPush<T> {
 
 pub struct Circus<T, const N: usize> {
     arr: [MaybeUninit<T>; N],
-    write_idx: usize,
-    read_idx: usize,
+    write_idx: CachePadded<usize>,
+    read_idx: CachePadded<usize>,
 }
 
 impl<T, const N: usize> Circus<T, N> {
     pub(crate) fn new() -> Self {
         Circus {
             arr: MaybeUninit::uninit_array(),
-            write_idx: 0,
-            read_idx: 0,
+            write_idx: CachePadded::new(0),
+            read_idx: CachePadded::new(0),
         }
     }
 
     fn read(&mut self) -> T {
         let val = unsafe {
-            mem::replace(&mut self.arr[self.read_idx % N], MaybeUninit::uninit()).assume_init()
+            mem::replace(&mut self.arr[*self.read_idx % N], MaybeUninit::uninit()).assume_init()
         };
-        self.read_idx += 1;
+        *self.read_idx += 1;
         val
     }
 
     pub fn can_push(&self) -> bool {
-        self.write_idx < self.read_idx + N
+        *self.write_idx < *self.read_idx + N
     }
 
     fn write(&mut self, t: T) {
-        self.arr[self.write_idx % N] = MaybeUninit::new(t);
-        self.write_idx += 1;
+        self.arr[*self.write_idx % N] = MaybeUninit::new(t);
+        *self.write_idx += 1;
     }
 
     pub fn push(&mut self, t: T) -> Result<(), CantPush<T>> {
@@ -54,7 +55,7 @@ impl<T, const N: usize> Circus<T, N> {
     }
 
     pub fn pop(&mut self) -> Result<T, ()> {
-        if self.read_idx < self.write_idx {
+        if *self.read_idx < *self.write_idx {
             Ok(self.read())
         } else {
             Err(())
