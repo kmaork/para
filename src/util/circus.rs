@@ -77,6 +77,14 @@ impl<T, const N: usize> Iterator for Circus<T, N> {
     }
 }
 
+impl<T, const N: usize> Drop for Circus<T, N> {
+    fn drop(&mut self) {
+        for item in self {
+            drop(item)
+        }
+    }
+}
+
 // We use strings in the tests to better test the unsafe memory management.
 // Strings, (as opposed to numbers for example) have non-trivial destructors.
 #[cfg(test)]
@@ -129,5 +137,17 @@ mod tests {
         let rc2 = c.pop().unwrap();
         assert_eq!(Rc::strong_count(&rc2), 1);
         assert_eq!(*rc2, 12345);
+    }
+
+    #[test]
+    fn test_dropping() {
+        let mut c = Circus::<_, 1>::new();
+        let rc = Rc::new(12345);
+        let weak_rc = Rc::downgrade(&rc);
+        assert_eq!(Weak::strong_count(&weak_rc), 1);
+        c.push(rc).unwrap();
+        assert_eq!(Weak::strong_count(&weak_rc), 1);
+        drop(c);
+        assert_eq!(Weak::strong_count(&weak_rc), 0);
     }
 }
