@@ -40,6 +40,9 @@ See [the integration tests](./tests/test.rs)
 - Support stateless producers? Rayon-style splittable iterators?
 - Implement Fanout for any iterable of consumers 
 ### Optimization
+- When a local thread is overflown, dump half of tasks to global queue
+- Make circus sized with power of two, so instead of using modulus with can use & with a mask
+- Use a custom allocator for the tasks
 - Inline some funcs or enable automatic inlining
 - A LOT of time is spent on creating tasks and moving them around.
   If we could make them not dyn (enum?) we could save both the dynamic dispatch and allocation.

@@ -1,7 +1,7 @@
 use crate::util::Circus;
 use crossbeam::thread;
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{fence, AtomicU32, Ordering};
 use std::sync::Arc;
 
 const THREAD_QUEUE_SIZE: usize = 100;
@@ -68,11 +68,16 @@ impl<'a> Iterator for TaskManager<'a> {
         if let Ok(task) = self.thread_queue.pop() {
             Some(task)
         } else {
+            // If all other threads are out of work, go to the else clause and shut down.
+            // Otherwise, block on popping from the global queue.
+            //TODO: make the global queue a struct, so it will keep track of how many threads are
+            // blocking on it
             if self.scheduler.start_blocking_if_someone_else_is_not() {
                 let task = self.global_queue.pop();
                 self.scheduler.done_blocking();
                 Some(task)
             } else {
+                // Wake up another thread with an empty task to shut it down
                 self.global_queue.push(Box::new(()));
                 None
             }
@@ -96,11 +101,21 @@ impl Scheduler {
     }
 
     fn start_blocking_if_someone_else_is_not(&self) -> bool {
-        self.count.fetch_sub(1, Ordering::AcqRel) > 1
+        // We first release because after it is decreased, another thread might shut down everything.
+        // After that, if we do reach 0 and have to shutdown, we first acquire.
+        // See https://doc.rust-lang.org/src/alloc/sync.rs.html#1432 for example.
+        if self.count.fetch_sub(1, Ordering::Release) > 1 {
+            return true;
+        }
+        fence(Ordering::Acquire);
+        false
     }
 
     fn done_blocking(&self) {
-        self.count.fetch_add(1, Ordering::AcqRel);
+        // Using a relaxed ordering is alright here, as knowledge of the
+        // original count prevents other threads from erroneously deleting
+        // the object. See https://doc.rust-lang.org/src/alloc/sync.rs.html#1432 for example.
+        self.count.fetch_add(1, Ordering::Relaxed);
     }
 }
 
