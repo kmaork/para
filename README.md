@@ -61,7 +61,6 @@ See [the integration tests](./tests/test.rs)
 - Smartly manage the balance between having many ready tasks and memory usage, by knowing which nodes produce more work
   and which nodes consume more work, and prioritizing them according to current workload.
 ### Testing
-- Performance regression tests
 - CI/CD
-- Add benchmark that can be optimized using work-stealing
 - Benchmark two producers
+- Use https://github.com/rust-lang/miri

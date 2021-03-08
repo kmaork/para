@@ -1,6 +1,7 @@
 use crossbeam::utils::CachePadded;
 use std::fmt::{Debug, Formatter};
 use std::mem::MaybeUninit;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{fmt, mem};
 
 pub struct CantPush<T> {
@@ -13,39 +14,50 @@ impl<T> Debug for CantPush<T> {
     }
 }
 
+// Draw inspiration from https://github.com/tokio-rs/tokio/blob/master/tokio/src/runtime/queue.rs#L23
+//    Intrusive linked list of tasks?
+//    Use vec to allocate buffer instead on stack?
+//
+// What happens when another thread has a reference to this queue and this thread destroys the queue? Sounds like weakref
+// When backpopping, other threads must read the read_idx (to see if it's smaller than write_idx) and decrement write_idx. That means they both must be atomic.
+// So we need a struct with a std::sync::Weak pointing at our indexes, able to mutate us. How? Refcell? how is it done here https://github.com/tokio-rs/tokio/blob/master/tokio/src/runtime/queue.rs#L295
 pub struct Circus<T, const N: usize> {
     arr: [MaybeUninit<T>; N],
-    write_idx: CachePadded<usize>,
-    read_idx: CachePadded<usize>,
+    write_idx: CachePadded<AtomicUsize>,
+    read_idx: CachePadded<AtomicUsize>,
 }
 
 impl<T, const N: usize> Circus<T, N> {
     pub(crate) fn new() -> Self {
         Circus {
             arr: MaybeUninit::uninit_array(),
-            write_idx: CachePadded::new(0),
-            read_idx: CachePadded::new(0),
+            write_idx: CachePadded::new(AtomicUsize::new(0)),
+            read_idx: CachePadded::new(AtomicUsize::new(0)),
         }
     }
 
     #[inline]
     fn read(&mut self) -> T {
         let val = unsafe {
-            mem::replace(&mut self.arr[*self.read_idx % N], MaybeUninit::uninit()).assume_init()
+            mem::replace(
+                &mut self.arr[self.read_idx.load(Ordering::SeqCst) % N],
+                MaybeUninit::uninit(),
+            )
+            .assume_init()
         };
-        *self.read_idx += 1;
+        self.read_idx.fetch_add(1, Ordering::SeqCst);
         val
     }
 
     #[inline]
     pub fn can_push(&self) -> bool {
-        *self.write_idx < *self.read_idx + N
+        self.write_idx.load(Ordering::SeqCst) < self.read_idx.load(Ordering::SeqCst) + N
     }
 
     #[inline]
     fn write(&mut self, t: T) {
-        self.arr[*self.write_idx % N] = MaybeUninit::new(t);
-        *self.write_idx += 1;
+        self.arr[self.write_idx.load(Ordering::SeqCst) % N] = MaybeUninit::new(t);
+        self.write_idx.fetch_add(1, Ordering::SeqCst);
     }
 
     #[inline]
@@ -60,7 +72,7 @@ impl<T, const N: usize> Circus<T, N> {
 
     #[inline]
     pub fn pop(&mut self) -> Result<T, ()> {
-        if *self.read_idx < *self.write_idx {
+        if self.read_idx.load(Ordering::SeqCst) < self.write_idx.load(Ordering::SeqCst) {
             Ok(self.read())
         } else {
             Err(())
