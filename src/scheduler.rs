@@ -1,4 +1,4 @@
-use crate::util::Circus;
+use crate::util::{CantPush, Circus};
 use crossbeam::thread;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::sync::atomic::{fence, AtomicU32, Ordering};
@@ -53,10 +53,8 @@ impl<'a> TaskManager<'a> {
     }
 
     pub fn add_task(&mut self, task: DynTask<'a>) {
-        if self.thread_queue.can_push() {
-            self.thread_queue.push(task).unwrap();
-        } else {
-            self.global_queue.push(task);
+        if let Err(CantPush(returned_task)) = self.thread_queue.push(task) {
+            self.global_queue.push(returned_task);
         }
     }
 }
