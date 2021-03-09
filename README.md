@@ -47,7 +47,7 @@ See [the integration tests](./tests/test.rs)
 - A LOT of time is spent on creating tasks and moving them around.
   If we could make them not dyn (enum?) we could save both the dynamic dispatch and allocation.
 - Circus reads and writes take time. We could probably optimize that. 
-- Designate cores for threads
+- Bind threads to cores (https://nitschinger.at/Binding-Threads-And-Processes-to-CPUs-in-Rust/)
 - When running short tasks, threads spend significant time synchronizing pushing and popping from the task queue.
   The usual solution for that would be to implement work stealing.
 - Stateful consumers are held inside a mutex, so threads might spend time blocking.

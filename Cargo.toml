@@ -17,6 +17,10 @@ crossbeam="0.8.0"
 [profile.release]
 debug = true
 
+[profile.bench]
+opt-level = 3
+debug = true
+
 [dev-dependencies]
 criterion = "0.3.3"
 
