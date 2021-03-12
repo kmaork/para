@@ -31,6 +31,8 @@ See [the integration tests](./tests/test.rs)
 ### Potential bugs
 - Make sure usage of atomics is correct
 ### Interface
+- Revive circus, as crossbeams Worker dequeue is growable, implemented using an epoch reclamation strategy
+  which adds a non-trivial overhead in the hot path
 - Support fanout in macro
 - Support multiple producers in macro
 - Support thread num in macro
@@ -40,13 +42,12 @@ See [the integration tests](./tests/test.rs)
 - Support stateless producers? Rayon-style splittable iterators?
 - Implement Fanout for any iterable of consumers 
 ### Optimization
+- Overwrite consumed tasks instead of allocating new ones
 - When a local thread is overflown, dump half of tasks to global queue
-- Make circus sized with power of two, so instead of using modulus with can use & with a mask
 - Use a custom allocator for the tasks
 - Inline some funcs or enable automatic inlining
 - A LOT of time is spent on creating tasks and moving them around.
   If we could make them not dyn (enum?) we could save both the dynamic dispatch and allocation.
-- Circus reads and writes take time. We could probably optimize that. 
 - Bind threads to cores (https://nitschinger.at/Binding-Threads-And-Processes-to-CPUs-in-Rust/)
 - When running short tasks, threads spend significant time synchronizing pushing and popping from the task queue.
   The usual solution for that would be to implement work stealing.

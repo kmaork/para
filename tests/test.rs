@@ -2,8 +2,11 @@ use para::*;
 use std::collections::HashSet;
 use std::sync::Mutex;
 
+// TODO: test with different thread amounts.
+
 #[test]
 fn test_with_macro() {
+    // TODO: this is not a test
     run_pipeline!(vec!(1, 2, 3) => |x| x + 1 => |x| println!("{}", x));
 }
 

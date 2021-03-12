@@ -1,5 +1,5 @@
 use crate::consumer::{ConsumeTask, Consumer};
-use crate::scheduler::TaskManager;
+use crate::scheduler::Scheduler;
 use rich_phantoms::PhantomCovariantAlwaysSendSync;
 use std::sync::Mutex;
 
@@ -42,8 +42,8 @@ pub struct Map<'a, I, O, M: Mapper<I, O>, C: Consumer<'a, O>> {
 impl<'a, I: Send, O: Send, M: Mapper<I, O> + Sync, C: Consumer<'a, O>> Consumer<'a, I>
     for Map<'a, I, O, M, C>
 {
-    fn consume(&'a self, data: I, manager: &mut TaskManager<'a>) {
-        manager.add_task(Box::new(ConsumeTask::new(
+    fn consume(&'a self, data: I, scheduler: &mut Scheduler<'a>) {
+        scheduler.add_task(Box::new(ConsumeTask::new(
             self.consumer,
             (self.mapper).map(data),
         )));
