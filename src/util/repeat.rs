@@ -25,11 +25,15 @@ impl<T: Clone> Iterator for Repeat<T> {
     }
 }
 
-pub fn repeat<T: Clone>(t: T, n: usize) -> Repeat<T> {
-    Repeat {
-        t: MaybeUninit::new(t),
-        n,
-    }
+// pub fn repeat<T: Clone>(t: T, n: usize) -> Repeat<T> {
+//     Repeat {
+//         t: MaybeUninit::new(t),
+//         n,
+//     }
+// }
+
+pub fn repeat<T: Clone>(t: T, n: usize) -> std::iter::Take<std::iter::Repeat<T>> {
+    std::iter::repeat(t).take(n)
 }
 
 #[cfg(test)]

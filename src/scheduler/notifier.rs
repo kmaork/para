@@ -12,6 +12,7 @@ struct BlockingThreadTrack {
     total_threads: usize,
     is_done: bool,
 }
+
 struct NotifierInner {
     blocking_track: Mutex<BlockingThreadTrack>,
     condvar: Condvar,
@@ -54,6 +55,7 @@ impl Notifier {
         if blocking_track.is_done {
             Notification::Done
         } else {
+            blocking_track.blocking_threads -= 1;
             Notification::NewWork
         }
     }
