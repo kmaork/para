@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 pub trait Mapper<I, O>: Sized {
     fn map(&self, input: I) -> O;
-    fn pipe<C: Consumer<'a, O>>(self, consumer: &'a C) -> Map<'a, I, O, Self, C> {
+    fn pipe<'a, C: Consumer<'a, O>>(self, consumer: &'a C) -> Map<'a, I, O, Self, C> {
         Map {
             mapper: self,
             _i: Default::default(),

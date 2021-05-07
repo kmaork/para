@@ -18,7 +18,6 @@ pub trait TaskGenerator<'a> {
 
 pub struct Scheduler<'a> {
     thread_queue: Worker<DynTask<'a>>,
-    global_queue: Arc<Injector<DynTask<'a>>>,
     //TODO: maybe use lifetimes instead of arc? like in the rest of the code?
     notifier: Notifier,
     stealers: Vec<Stealer<DynTask<'a>>>,
@@ -28,7 +27,6 @@ impl<'a> Scheduler<'a> {
     pub fn group(size: usize) -> Vec<Self> {
         // TODO: instead of cloning many arcs, maybe have one shared state struct like in
         // https://github.com/tokio-rs/tokio/blob/master/tokio/src/runtime/thread_pool/worker.rs#L70
-        let global_queue = Arc::new(Injector::new());
         let notifier = Notifier::new();
         let thread_queues: Vec<_> = (0..size).map(|_| Worker::new_lifo()).collect();
         let stealer_lists: Vec<Vec<Stealer<DynTask<'a>>>> = (0..size)
@@ -44,7 +42,6 @@ impl<'a> Scheduler<'a> {
             .zip(stealer_lists.into_iter())
             .map(|(thread_queue, stealers)| Self {
                 thread_queue,
-                global_queue: Arc::clone(&global_queue),
                 notifier: notifier.clone(),
                 stealers,
             })
@@ -55,17 +52,8 @@ impl<'a> Scheduler<'a> {
         if self.thread_queue.len() < THREAD_QUEUE_SIZE {
             self.thread_queue.push(task);
         } else {
-            self.global_queue.push(task);
-            self.notifier.added_work();
-            // TODO: ultimately steal a batch into the global queue
+            // self.notifier.added_work();
         }
-    }
-
-    fn steal_from_global(&self) -> Option<DynTask<'a>> {
-        if let Steal::Success(_) = self.global_queue.steal_batch(&self.thread_queue) {
-            return self.thread_queue.pop();
-        }
-        None
     }
 
     fn steal_from_peer(&self) -> Option<DynTask<'a>> {
@@ -84,8 +72,6 @@ impl<'a> Iterator for Scheduler<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if let Some(task) = self.thread_queue.pop() {
-                return Some(task);
-            } else if let Some(task) = self.steal_from_global() {
                 return Some(task);
             } else if let Some(task) = self.steal_from_peer() {
                 return Some(task);

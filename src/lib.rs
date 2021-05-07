@@ -1,8 +1,4 @@
 #![allow(incomplete_features)]
-#![feature(in_band_lifetimes)]
-#![feature(const_generics)]
-#![feature(maybe_uninit_uninit_array)]
-#![feature(maybe_uninit_ref)]
 
 mod consumer;
 mod producer;
@@ -44,7 +40,7 @@ pub fn schedule<'a>(producers: &'a mut [&'a mut (dyn TaskGenerator<'a> + 'a)], n
 #[macro_export]
 macro_rules! run_pipeline_reversed {
     ($producer:expr) => {
-        schedule(&mut [&mut $producer], 4);
+        schedule(&mut [&mut $producer], 2);
     };
     ($node1:expr=>$node2:expr$(=>$node:expr)*) => {
         let local_node = $node1;
