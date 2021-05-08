@@ -9,7 +9,7 @@ fn main() {
     let ss: Vec<_> = (0..t).map(|_| w.stealer()).collect();
     crossbeam::thread::scope(|sc| {
         sc.spawn(move |_| loop {
-            for x in 0..10 {
+            for x in 0..1000 {
                 for i in 0..x {
                     for j in 0..x {
                         for _ in 0..i {
@@ -27,7 +27,7 @@ fn main() {
         for s in ss {
             let w2 = Worker::new_lifo();
             sc.spawn(move |_| loop {
-                for i in 0..10 {
+                for i in 0..1000 {
                     for _ in 0..i {
                         s.steal_batch(&w2);
                     }
