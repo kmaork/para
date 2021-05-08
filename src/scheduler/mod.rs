@@ -58,6 +58,8 @@ impl<'a> Scheduler<'a> {
 
     fn steal_from_peer(&self) -> Option<DynTask<'a>> {
         for stealer in self.stealers.iter() {
+            // let size = self.thread_queue.len();
+            //
             if let Steal::Success(_) = stealer.steal_batch(&self.thread_queue) {
                 return self.thread_queue.pop();
             }

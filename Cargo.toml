@@ -27,3 +27,7 @@ criterion = "0.3.3"
 [[bin]]
 name = "profile"
 path = "profiling/profile.rs"
+
+[[bin]]
+name = "whoa"
+path = "whoa.rs"
