@@ -12,6 +12,7 @@ categories = ["concurrency"]
 [dependencies]
 rich-phantoms = "0.1.0"
 crossbeam="0.8.0"
+unwind="0.4.0"
 
 [profile.release]
 opt-level = 3
