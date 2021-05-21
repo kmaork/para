@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    let w = Worker::new_lifo();
+    let w = Worker::new_fifo();
     let s = w.stealer();
     let mut i = 0;
     let h = Arc::new(Mutex::new(HashSet::new()));
