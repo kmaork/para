@@ -62,16 +62,17 @@ impl<'a> Scheduler<'a> {
     }
 
     fn steal_from_global(&self) -> Option<DynTask<'a>> {
-        if let Steal::Success(_) = self.global_queue.steal_batch(&self.thread_queue) {
-            return self.thread_queue.pop();
+        match self.global_queue.steal_batch_and_pop(&self.thread_queue) {
+            Steal::Success(t) => Some(t),
+            Steal::Empty => None,
+            Steal::Retry => self.steal_from_global(),
         }
-        None
     }
 
     fn steal_from_peer(&self) -> Option<DynTask<'a>> {
         for stealer in self.stealers.iter() {
-            if let Steal::Success(_) = stealer.steal_batch(&self.thread_queue) {
-                return self.thread_queue.pop();
+            if let Steal::Success(t) = stealer.steal_batch_and_pop(&self.thread_queue) {
+                return Some(t);
             }
         }
         None

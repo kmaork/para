@@ -11,7 +11,7 @@ categories = ["concurrency"]
 
 [dependencies]
 rich-phantoms = "0.1.0"
-crossbeam="0.8.0"
+crossbeam= { path="../crossbeam" }
 
 [profile.release]
 debug = true
