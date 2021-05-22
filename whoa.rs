@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    let w = Worker::new_fifo();
+    let w = Worker::new_lifo();
     let s = w.stealer();
     let mut i = 0;
     let h = Arc::new(Mutex::new(HashSet::new()));
@@ -26,7 +26,7 @@ fn main() {
         let w2 = Worker::new_fifo();
         sc.spawn(move |_| loop {
             for _ in 0..100 {
-                s.steal_batch(&w2);
+                s.steal_batch_and_pop(&w2);
             }
             while !w2.is_empty() {
                 if let Some(p) = w2.pop() {
